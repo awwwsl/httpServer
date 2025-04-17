@@ -40,7 +40,7 @@ func (stringValidator) NotShorterThan(minLength int) StringValidateFunc {
 	}
 }
 
-func (stringValidator) ByRegex(regexp regexp.Regexp) StringValidateFunc {
+func (stringValidator) MatchRegex(regexp regexp.Regexp) StringValidateFunc {
 	return func(value string) *ValidateError {
 		if !regexp.MatchString(value) {
 			return &ValidateError{Reason: "Value does not match regex " + regexp.String()}
@@ -49,9 +49,9 @@ func (stringValidator) ByRegex(regexp regexp.Regexp) StringValidateFunc {
 	}
 }
 
-func (stringValidator) ByRegexString(regex string) StringValidateFunc {
+func (stringValidator) MatchRegexString(regex string) StringValidateFunc {
 	regularExp := regexp.MustCompile(regex)
-	return String.ByRegex(*regularExp)
+	return String.MatchRegex(*regularExp)
 }
 
 func (stringValidator) NotEqualTo(value string) StringValidateFunc {
