@@ -14,14 +14,14 @@ import (
 )
 
 type PerlinNoiseRequest struct {
-	Width     int     `query:"width" description:"Width of perlin image" example:"512"`
-	Height    int     `query:"height" description:"Height of perlin image" example:"512"`
-	Alpha     float64 `query:"alpha" description:"Alpha of perlin image" example:"2"`
-	Beta      float64 `query:"beta" description:"Beta of perlin image" example:"2"`
-	ScaleX    float64 `query:"scalex" description:"The x scale of perlin image" example:"5"`
-	ScaleY    float64 `query:"scaley" description:"The y scale of perlin image" example:"5"`
-	Iteration int     `query:"n" description:"Iteration of perlin image" example:"5"`
-	Seed      string  `query:"seed" description:"Seed of perlin image. Empty for random" example:"abc123"`
+	Width     int     `query:"width" description:"Width of perlin image" example:"512" default:"512" required:"false"`
+	Height    int     `query:"height" description:"Height of perlin image" example:"512" default:"512" required:"false"`
+	Alpha     float64 `query:"alpha" description:"Alpha of perlin image" example:"2" default:"2" required:"false"`
+	Beta      float64 `query:"beta" description:"Beta of perlin image" example:"2" default:"2" required:"false"`
+	ScaleX    float64 `query:"scalex" description:"The x scale of perlin image" example:"5" default:"5" required:"false"`
+	ScaleY    float64 `query:"scaley" description:"The y scale of perlin image" example:"5" default:"5" required:"false"`
+	Iteration int     `query:"n" description:"Iteration of perlin image" example:"5" default:"5" required:"false"`
+	Seed      string  `query:"seed" description:"Seed of perlin image. Empty for random" example:"abc123" required:"false"`
 }
 
 func RoutePerlinNoise(path string, builder *RouteBuilder) {
@@ -152,7 +152,7 @@ func ConfigurePerlinNoise(path string, builder *OpenApiBuilder) error {
 	}
 	context.SetDescription("Generates a Perlin noise image using GEGL https://gitlab.gnome.org/GNOME/gegl")
 	context.SetTags("image")
-	context.AddRespStructure(new([]byte), func(cu *openapi.ContentUnit) {
+	context.AddRespStructure(new(string), func(cu *openapi.ContentUnit) {
 		cu.HTTPStatus = http.StatusOK
 		cu.Description = "The Perlin noise image"
 		cu.ContentType = "image/png"
@@ -170,6 +170,9 @@ func ConfigurePerlinNoise(path string, builder *OpenApiBuilder) error {
 	if err != nil {
 		return err
 	}
+	format := "binary"
+	// quite dirty but works
+	builder.OpenApiReflector.Spec.Paths.MapOfPathItemValues[path].MapOfOperationValues["post"].Responses.Default.Response.Content["image/png"].Schema.Schema.Format = &format
 	return nil
 }
 func stringToInt64(str string) int64 {
