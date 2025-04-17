@@ -81,13 +81,24 @@ func configureConfiguration(logger logging.ILogger) *services.Configuration {
 }
 
 func configureHttpServer(sp *services.ServiceProvider) *http.Server {
+	var err error
 	routeBuilder := api.NewRouteBuilder(sp)
 	openApiBuilder := api.NewOpenApiBuilder()
 	configureOpenApiBasics(openApiBuilder.OpenApiReflector)
 	routeBuilder.Mux.Handle("/", http.RedirectHandler("/api/openapi", http.StatusFound))
 	api.RouteScalarClient("/api/openapi", routeBuilder)
 	api.RouteOpenApiFile("/api/openapi/openapi.json", routeBuilder, openApiBuilder)
-	_ = api.ConfigureOpenApiFile("/api/openapi/openapi.json", openApiBuilder)
+	err = api.ConfigureOpenApiFile("/api/openapi/openapi.json", openApiBuilder)
+	if err != nil {
+		sp.Logger.Warning("Error configuring OpenApi file: %v", err)
+		err = nil
+	}
+	api.RoutePerlinNoise("/api/perlin_noise", routeBuilder)
+	err = api.ConfigurePerlinNoise("/api/perlin_noise", openApiBuilder)
+	if err != nil {
+		sp.Logger.Warning("Error configuring Perlin noise: %v", err)
+		err = nil
+	}
 	server := http.Server{
 		Addr:    ":" + strconv.Itoa(sp.Configuration.Port),
 		Handler: newLoggingServeMux(sp.Logger, routeBuilder.Mux),
