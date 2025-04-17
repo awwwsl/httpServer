@@ -1,6 +1,9 @@
 package validation
 
-func Validate[T any](value T, options ValidateOptions, validators ...func(T) *ValidateError) (bool, []*ValidateError) {
+func Validate[T any](value T, options *ValidateOptions, validators ...func(value T) *ValidateError) (bool, []*ValidateError) {
+	if options == nil {
+		options = &DefaultValidateOptions
+	}
 	results := make([]*ValidateError, 0)
 
 	for _, validator := range validators {
