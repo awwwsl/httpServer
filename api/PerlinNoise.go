@@ -4,6 +4,7 @@ import (
 	"github.com/aquilax/go-perlin"
 	"github.com/swaggest/openapi-go"
 	"hash/fnv"
+	"httpServer/validation"
 	"image"
 	"image/color"
 	"image/png"
@@ -117,6 +118,39 @@ func RoutePerlinNoise(path string, builder *RouteBuilder) {
 				return
 			}
 		}
+
+		var errorsAggregate = InvalidArgumentBadRequestResponse{}
+		errorsAggregate.Errors = make(map[string][]*validation.ValidateError)
+		ok, errors := validation.Validate(int64(height), validation.DefaultValidateOptions,
+			validation.Integer.NotLessThan(1),
+			validation.Integer.NotGreaterThan(4096),
+		)
+		if !ok {
+			errorsAggregate.Errors["height"] = errors
+		}
+		ok, errors = validation.Validate(int64(width), validation.DefaultValidateOptions,
+			validation.Integer.NotLessThan(1),
+			validation.Integer.NotGreaterThan(4096),
+		)
+		if !ok {
+			errorsAggregate.Errors["width"] = errors
+		}
+		ok, errors = validation.Validate(int64(iteration), validation.DefaultValidateOptions,
+			validation.Integer.NotLessThan(0),
+			validation.Integer.NotGreaterThan(50),
+		)
+		if !ok {
+			errorsAggregate.Errors["iteration"] = errors
+		}
+
+		if len(errorsAggregate.Errors) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			jsonByte, _ := errorsAggregate.ToJson()
+			_, _ = w.Write(jsonByte)
+			return
+		}
+
 		if seedStr == "" {
 			seed = rand.Int63()
 		} else {

@@ -4,6 +4,6 @@ type ValidateOptions struct {
 	ShortCircuit bool
 }
 
-var DefaultValidateOptions = ValidateOptions{
+var DefaultValidateOptions = &ValidateOptions{
 	ShortCircuit: false,
 }

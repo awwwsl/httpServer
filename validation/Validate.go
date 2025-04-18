@@ -2,7 +2,7 @@ package validation
 
 func Validate[T any](value T, options *ValidateOptions, validators ...func(value T) *ValidateError) (bool, []*ValidateError) {
 	if options == nil {
-		options = &DefaultValidateOptions
+		options = DefaultValidateOptions
 	}
 	results := make([]*ValidateError, 0)
 
