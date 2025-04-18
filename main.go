@@ -99,6 +99,12 @@ func configureHttpServer(sp *services.ServiceProvider) *http.Server {
 		sp.Logger.Warning("Error configuring Perlin noise: %v", err)
 		err = nil
 	}
+	api.RouteDrunkBishop("/api/drunk_bishop", routeBuilder)
+	err = api.ConfigureDrunkBishop("/api/drunk_bishop", openApiBuilder)
+	if err != nil {
+		sp.Logger.Warning("Error configuring Drunk Bishop: %v", err)
+		err = nil
+	}
 	server := http.Server{
 		Addr:    ":" + strconv.Itoa(sp.Configuration.Port),
 		Handler: newLoggingServeMux(sp.Logger, routeBuilder.Mux),
