@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/swaggest/openapi-go/openapi3"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -24,12 +26,23 @@ func main() {
 	sp.Init(config)
 	httpServer := configureHttpServer(&sp)
 	log.Information("Starting server on port %d", config.Port)
+	go func() {
+		<-sp.StoppingContext.Done()
+		log.Information("Shutting down server")
+		forceShutdownCtx, forceShutdownCtxCancelFunc := context.WithTimeoutCause(context.Background(), 10*time.Second, errors.New("timeout shutting down server"))
+		defer forceShutdownCtxCancelFunc() // someone says without this will cause leak, idk if this is true but added anyway
+		err := httpServer.Shutdown(forceShutdownCtx)
+		if err != nil {
+			log.Warning("Error shutting down server: %v", err)
+		}
+	}()
+	// TODO: move this to sp's daemon and block mainthread by sp, not block mainthread by this service
 	err := httpServer.ListenAndServe()
+
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Warning("Server stopped with error: %v", err)
-	} else {
-		log.Information("Server stopped")
 	}
+	log.Information("Server stopped")
 }
 
 func configureLogger(logLevel logging.LogLevel) logging.ILogger {
