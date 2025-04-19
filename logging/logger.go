@@ -40,9 +40,9 @@ func (l logger) Log(level LogLevel, msg string, skip int, args ...interface{}) {
 	}
 	if l.colorProvider != nil {
 		// [2025-04-15 15:13:45 D] [main.go:15]: message
-		fmt.Printf("%s[%s %c]%s: %s%s\n", l.colorProvider(level), time.Now().Format("2006-01-02 15:04:05"), level.String()[0], sourceContext, fmt.Sprintf(msg, args...), l.colorProvider(None))
+		fmt.Printf("%s[%s %c]%s: %s%s\n", l.colorProvider(level), time.Now().Format("2006-01-02 15:04:05.000"), level.String()[0], sourceContext, fmt.Sprintf(msg, args...), l.colorProvider(None))
 	} else {
-		fmt.Printf("[%s %c]%s: %s\n", time.Now().Format("2006-01-02 15:04:05"), level.String()[0], sourceContext, fmt.Sprintf(msg, args...))
+		fmt.Printf("[%s %c]%s: %s\n", time.Now().Format("2006-01-02 15:04:05.000"), level.String()[0], sourceContext, fmt.Sprintf(msg, args...))
 	}
 }
 
