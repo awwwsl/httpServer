@@ -25,6 +25,7 @@ func RoutePProf(path string, builder *RouteBuilder) {
 
 	profiles := runtimePProf.Profiles()
 	for _, profile := range profiles {
+		builder.ServiceProvider.Logger.Debug("Registering pprof profile %s to endpoint %s/%s:", profile.Name(), path, profile.Name())
 		builder.Mux.HandleFunc(path+"/"+profile.Name(), func(w http.ResponseWriter, r *http.Request) {
 			debugStr := r.URL.Query().Get("debug")
 			debug := 0
