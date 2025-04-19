@@ -105,6 +105,15 @@ func configureHttpServer(sp *services.ServiceProvider) *http.Server {
 		sp.Logger.Warning("Error configuring Drunk Bishop: %v", err)
 		err = nil
 	}
+	if true {
+		sp.Logger.Warning("Exposing pprof at /api/pprof, this is not recommended in production")
+		api.RoutePProf("/api/pprof", routeBuilder)
+		err = api.ConfigurePProf("/api/pprof", openApiBuilder)
+		if err != nil {
+			sp.Logger.Warning("Error configuring PProf: %v", err)
+			err = nil
+		}
+	}
 	server := http.Server{
 		Addr:    ":" + strconv.Itoa(sp.Configuration.Port),
 		Handler: newLoggingServeMux(sp.Logger, routeBuilder.Mux),
