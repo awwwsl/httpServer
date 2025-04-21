@@ -118,6 +118,13 @@ func configureHttpServer(sp *services.ServiceProvider) *http.Server {
 		sp.Logger.Warning("Error configuring Drunk Bishop: %v", err)
 		err = nil
 	}
+	api.RouteBrainFxxkInterpretor("/api/brain_fxxk_interpretor", routeBuilder)
+	err = api.ConfigureBrainFxxkInterpretor("/api/brain_fxxk_interpretor", openApiBuilder)
+	if err != nil {
+		sp.Logger.Warning("Error configuring BrainFxxk Interpretor: %v", err)
+		err = nil
+	}
+
 	if true {
 		sp.Logger.Warning("Exposing pprof at /api/pprof, this is not recommended in production")
 		api.RoutePProf("/api/pprof", routeBuilder)
