@@ -17,7 +17,7 @@ type BrainFxxkRequest struct {
 	Code    string `json:"code" description:"The code of the request" example:"+[.+]"`
 	MemSize int    `json:"memSize" description:"The size of the memory in Byte" default:"8"`
 	Memory  string `json:"memory" description:"The default memory set in base64. Leave empty for full zero" default:""`
-	StdIn   string `json:"stdIn" description:"The input to the program in base64"`
+	Stdin   string `json:"stdin" description:"The input to the program in base64"`
 }
 
 type BrainFxxkResponse struct {
@@ -86,7 +86,7 @@ func RouteBrainFxxkInterpretor(path string, builder *RouteBuilder) {
 			}
 			copy(memory, mem)
 		}
-		stdin, err := base64.StdEncoding.DecodeString(req.StdIn)
+		stdin, err := base64.StdEncoding.DecodeString(req.Stdin)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
 			writer.Write([]byte("Error decoding stdin"))
