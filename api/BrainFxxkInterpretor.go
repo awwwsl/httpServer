@@ -1,13 +1,16 @@
 package api
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/swaggest/openapi-go"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type BrainFxxkRequest struct {
@@ -89,7 +92,9 @@ func RouteBrainFxxkInterpretor(path string, builder *RouteBuilder) {
 			writer.Write([]byte("Error decoding stdin"))
 			return
 		}
-		stdout, err := interpret(req.Code, memory, stdin)
+		timeoutContext, cancel := context.WithTimeoutCause(context.Background(), time.Second*5, errors.New("timeout"))
+		defer cancel()
+		stdout, err := interpret(req.Code, memory, stdin, timeoutContext)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
 			writer.Write([]byte("Error interpreting code: " + err.Error()))
@@ -106,9 +111,9 @@ func RouteBrainFxxkInterpretor(path string, builder *RouteBuilder) {
 			writer.Write([]byte("Error marshalling response"))
 			return
 		}
-		writer.WriteHeader(http.StatusOK)
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		writer.Header().Set("Content-Length", strconv.Itoa(len(responseBody)))
+		writer.WriteHeader(http.StatusOK)
 		writer.Write(responseBody)
 		if flusher, ok := writer.(http.Flusher); ok {
 			flusher.Flush()
@@ -116,7 +121,7 @@ func RouteBrainFxxkInterpretor(path string, builder *RouteBuilder) {
 	})
 }
 
-func interpret(code string, mem []byte, stdin []byte) (result []byte, err error) {
+func interpret(code string, mem []byte, stdin []byte, ctx context.Context) (result []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic: %v", r)
@@ -127,6 +132,12 @@ func interpret(code string, mem []byte, stdin []byte) (result []byte, err error)
 	stdinOffset := 0
 	stdout := make([]byte, 0)
 	for codeOffset < len(code) {
+		select {
+		case <-ctx.Done():
+			return stdout, ctx.Err()
+		default:
+			break
+		}
 		op := code[codeOffset]
 		switch Ops(op) {
 		case OpsPlus:
@@ -145,7 +156,11 @@ func interpret(code string, mem []byte, stdin []byte) (result []byte, err error)
 			stdout = append(stdout, mem[memOffset])
 			break
 		case OpsComma:
-			mem[memOffset] = stdin[stdinOffset]
+			if stdinOffset >= len(stdin) {
+				mem[memOffset] = 0
+			} else {
+				mem[memOffset] = stdin[stdinOffset]
+			}
 			stdinOffset++
 			break
 		case OpsOpen:

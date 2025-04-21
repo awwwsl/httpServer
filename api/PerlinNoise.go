@@ -167,14 +167,17 @@ func RoutePerlinNoise(path string, builder *RouteBuilder) {
 			}
 		}
 
+		w.Header().Set("Content-Type", "image/png")
 		err := png.Encode(w, img)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("Failed to encode image: " + err.Error()))
 			return
 		}
-		w.Header().Set("Content-Type", "image/png")
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
 		return
 	})
 }
