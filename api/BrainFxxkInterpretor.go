@@ -122,15 +122,15 @@ func RouteBrainFxxkInterpretor(path string, builder *RouteBuilder) {
 }
 
 func interpret(code string, mem []byte, stdin []byte, ctx context.Context) (result []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
 	codeOffset := 0
 	memOffset := 0
 	stdinOffset := 0
 	stdout := make([]byte, 0)
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v\ncode: %d\nmem: %d\nstdin: %d", r, codeOffset, memOffset, stdinOffset)
+		}
+	}()
 	for codeOffset < len(code) {
 		select {
 		case <-ctx.Done():
