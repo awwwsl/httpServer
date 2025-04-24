@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/swaggest/openapi-go/openapi3"
 	"httpServer/api"
 	"httpServer/logging"
@@ -11,38 +10,28 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 )
 
 func main() {
 	log := configureLogger(logging.Information)
-	config := configureConfiguration(log)
-	if config == nil {
+	config, err := configureConfiguration(log)
+	if err != nil {
+		log.Warning("Error configuring application: %v", err)
 		return
 	}
 	log = configureLogger(config.LogLevel)
 	log.Information("Logging on level %s", config.LogLevel.String())
-	sp := services.ServiceProvider{}
-	sp.Init(config)
-	httpServer := configureHttpServer(&sp)
-	log.Information("Starting server on port %d", config.Port)
-	go func() {
-		<-sp.StoppingContext.Done()
-		log.Information("Shutting down server")
-		forceShutdownCtx, forceShutdownCtxCancelFunc := context.WithTimeoutCause(context.Background(), 10*time.Second, errors.New("timeout shutting down server"))
-		defer forceShutdownCtxCancelFunc() // someone says without this will cause leak, idk if this is true but added anyway
-		err := httpServer.Shutdown(forceShutdownCtx)
-		if err != nil {
-			log.Warning("Error shutting down server: %v", err)
-		}
-	}()
-	// TODO: move this to sp's daemon and block mainthread by sp, not block mainthread by this service
-	err := httpServer.ListenAndServe()
 
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Warning("Server stopped with error: %v", err)
-	}
-	log.Information("Server stopped")
+	sp := services.NewEmptyServiceProvider()
+	sp.AddLogger(log)
+	sp.AddConfiguration(config)
+	sp.AddHttpService(func() *services.HttpService {
+		server := configureHttpServer(sp)
+		return services.NewHttpService(server, nil)
+	}())
+	sp.Run(context.Background())
+
+	log.Information("Exiting")
 }
 
 func configureLogger(logLevel logging.LogLevel) logging.ILogger {
@@ -50,7 +39,7 @@ func configureLogger(logLevel logging.LogLevel) logging.ILogger {
 	return log
 }
 
-func configureConfiguration(logger logging.ILogger) *services.Configuration {
+func configureConfiguration(logger logging.ILogger) (*services.Configuration, error) {
 	// Read from json
 	var config services.Configuration
 	configFile, err := os.ReadFile("config.json")
@@ -60,15 +49,15 @@ func configureConfiguration(logger logging.ILogger) *services.Configuration {
 		configFile, err = json.MarshalIndent(config, "", "  ")
 		if err != nil {
 			logger.Warning("Error creating config file: %v, exiting", err)
-			return nil
+			return nil, err
 		}
 		err = os.WriteFile("config.json", configFile, 0644)
 		if err != nil {
 			logger.Warning("Error creating config file: %v, exiting", err)
-			return nil
+			return nil, err
 		}
 		logger.Information("Config file created with default values, exiting")
-		return nil
+		return nil, err
 	} else {
 		err = json.Unmarshal(configFile, &config)
 		if err != nil {
@@ -76,19 +65,19 @@ func configureConfiguration(logger logging.ILogger) *services.Configuration {
 			err = os.Rename("config.json", "config.json.bak")
 			if err != nil {
 				logger.Warning("Error backing up config file: %v, exiting", err)
-				return nil
+				return nil, err
 			}
 			config = *services.NewDefaultConfig()
 			configFile, _ = json.MarshalIndent(config, "", "  ")
 			err = os.WriteFile("config.json", configFile, 0644)
 			if err != nil {
 				logger.Warning("Error creating config file: %v, exiting", err)
-				return nil
+				return nil, err
 			}
 			logger.Information("Config file created with default values, exiting")
-			return nil
+			return nil, err
 		}
-		return &config
+		return &config, nil
 	}
 	// Read from env
 }
